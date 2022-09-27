@@ -1,0 +1,354 @@
+---
+title: "Customer 1st Order Satisfaction Analysis - Aug,2022"
+author: "Linh Vo"
+date: " Data is collected from 2022-08-01 to 2022-08-31"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    fig_width: 8
+    highlight: tango
+---
+
+```{r setup environment, include=FALSE}
+install.packages("tidyverse")
+install.packages("janitor")
+install.packages("ggplot2")
+install.packages("ggpubr")
+install.packages("reactable")
+install.packages("kableExtra")
+library(knitr)
+library(kableExtra)
+library(reactable)
+library(tidyverse)
+library(readr)
+library(janitor)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+```
+
+```{r import data, include=FALSE}
+Survey <- read_csv("Survey.csv", na = "empty", show_col_types = FALSE)
+head(Survey)
+```
+
+```{r cleaning data, include=FALSE}
+Survey <- as.data.frame(Survey)
+clean_names(Survey)
+data <- Survey %>% 
+  unite(col = 'cuisine_type', 
+        c('Au','Nhat','Han','Viet','Khac'), sep ='', remove = TRUE)
+```
+
+## Overall summary  
+
+There are 64 customers attended to the survey. 
+
+```{r overall 1, echo=FALSE}
+data %>% summarise(number_of_cust = n_distinct(SessionID))
+```
+
+**Customers' portrait:**
+
+Most of our customers (49 out of 64) are serving Vietnamese Cuisine restaurants.  
+
+Veggies seller is stand for "sạp bán rau" which comes from Wet Market channel.  
+
+There are 5 customers who have greater than 1 store (Chain), the remaining is unique store.  
+
+```{r customer portrait, echo=FALSE}
+data %>% group_by(cuisine_type) %>% summarise(number_of_cust = n_distinct(SessionID))
+data %>% group_by(`Store Type`) %>% summarise(number_of_cust = n_distinct(`Store ID`))
+```
+
+### 1. Approaching Channel vs Cuisine Type  
+
+The most effective channel is direct approaching by Sales.  
+
+Comparison between SNS (Zalo, Facebook), Customers seem to know our business more through Facebook Ads.  
+
+```{r approaching channel, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Approaching Channel`, fill = cuisine_type)) +
+  geom_bar(stat="count") + coord_flip() + 
+  scale_fill_brewer(palette="Spectral") +
+  theme_classic() +
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm'),
+        plot.title = element_text(size = 10, face = "bold", color = "darkred")) + 
+  ggtitle("Number of customers per Approaching Channel")
+
+```
+
+### 2. Tools & Customer Satisfaction vs Cuisine Type  
+
+Most of customers are satisfied with their 1st experience with our business.  
+
+However, there are 13 customers who were not really happy (Neutral) or even felt disappointed.   (Dissatisfied). And most of them are selling Veggies and Vietnamese cuisine.   
+
+```{r Tools, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Tools`,y = cuisine_type, color = cuisine_type)) +
+  geom_count(show.legend = FALSE) + coord_flip() + facet_grid(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() +
+  theme(strip.text.y = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(size = 9, color = "black", face = "bold"),
+        axis.title.y = element_text(size = 9, color = "black", face = "bold")) +
+  labs(x = "Tools", y = "Cuisine Type")
+```
+
+### Let's take a look on the 6 measurement that CX used to verify customer satisfaction  
+
+We will group 64 customers into 4 segments depend on their satisfaction above:
+
+-   Dissatisfied
+-   Neutral
+-   Satisfied
+-   Very satisfied
+
+We hope to figure out why they felt unhappy with Kamereo service by going through 6 measurement:
+
+-   Price
+-   Product quality
+-   Fulfillment rate
+-   Product variety
+-   Shipping service
+-   Customer service
+
+#### 2.1 Price  
+
+As the graph shown, Price has slight correlation with the customer satisfaction.  
+
+Because unhappy customers seem to appear mostly in Dissatisfied group.  
+
+Otherwise, Very satisfied customers felt Very happy with our price.  
+
+There are some customers in Satisfied group felt unhappy with the price, but maybe price is not their main concern when choosing a supplier.  
+
+```{r price, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Price`,y = cuisine_type, color = cuisine_type)) +
+  geom_count() + coord_flip() + facet_wrap(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 9, color = "darkred", face = "bold"),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) 
+```
+
+*n is the count of customers related to each group*
+
+#### 2.2 Product quality  
+
+Customers obviously felt dissatisfied with our product quality.  
+
+Unhappy statement appears in all 4 groups of customer.  
+
+**--\> It probably our product quality were truly not good in the past month.** 
+
+**--\> We need to improve our QC check more strictly to make guarantee to our product quality with customers.**
+
+```{r prodcut quality, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Product quality`,y = cuisine_type, color = cuisine_type)) +
+  geom_count() + coord_flip() +facet_wrap(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 9, color = "darkred", face = "bold"),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) 
+```
+
+#### 2.3 Fulfillment rate  
+
+Almost customers felt satisfied with our fulfillment.  
+
+There is only one customer in Viet group felt unhappy but overall, they still felt satisfied with our service.  
+
+```{r fulfillment rate, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Fulfillment rate`,y = cuisine_type, color = cuisine_type)) +
+  geom_count() + coord_flip() + facet_wrap(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 9, color = "darkred", face = "bold"),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) 
+```
+
+  
+#### 2.4 Product variety  
+
+Almost customers felt satisfied with our product variety.  
+
+There are 2 customers who felt unhappy. Their feedback for that is they need more FMGC products (toilet paper/tissue) and want to buy trứng vịt lộn item.  
+
+```{r product variety, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Product variety`,y = cuisine_type, color = cuisine_type)) +
+  geom_count() + coord_flip() + facet_wrap(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 9, color = "darkred", face = "bold"),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) 
+```
+
+#### 2.5 Customer service  
+
+So great!  
+
+All of our customers are happy with our Customer Service.  
+
+```{r customer service, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Customer service`,y = cuisine_type, color = cuisine_type)) +
+  geom_count() + coord_flip() + facet_wrap(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 9, color = "darkred", face = "bold"),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) 
+```
+
+#### 2.6 Shipping service  
+
+Two in a row!  
+
+No negative feedback for our Shipping service.  
+
+```{r shipping, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Shipping service`,y = cuisine_type, color = cuisine_type)) +
+  geom_count() + coord_flip() + facet_wrap(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_bw() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 9, color = "darkred", face = "bold"),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) 
+```
+
+  
+### With their positive and negative satisfaction, will they place second order? and even increase their volume?  
+
+#### Second order?  
+
+As the graph below shown, even customers felt satisfied, they still not place second orders.  
+
+```{r second order, echo=FALSE}
+data %>% ggplot(mapping = aes(x=`Will you order second time?`, fill = cuisine_type)) +
+  geom_bar() + facet_grid(vars(`Customer satisfaction`), scales = 'free') +
+  scale_fill_brewer(palette="Spectral") + theme_light() + 
+  theme(strip.text.y = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) + ggtitle('Will you order second time?') 
+```
+  
+Let's review their comments to understand their point of view:  
+
+Their concerns are all about price and product quality.  
+
+```{r comments , echo=FALSE}
+data_fb_no <- data %>% filter(`Will you order second time?` == 'No',
+                              `Customer satisfaction` %in% c('Satisfied','Neutral')) %>%
+  select(`Store ID`, `Store Name`,`Customer satisfaction`,`Will you order second time?`,`Comments` )
+data_fb_no <- arrange(data_fb_no, `Customer satisfaction`)
+knitr::kable(data_fb_no, format="markdown")
+```
+  
+#### Increasing volume?  
+
+There are 52 out of 64 customers who will place second order with us.  
+
+Let's check if they will increase their volume in the chart below:  
+
+```{r increasing volume , echo=FALSE}
+data_fb_yes <- data %>% filter(`Will you order second time?` == 'Yes')
+data_fb_yes %>% ggplot(mapping = aes(x=`Will you increase your volume?`, fill = cuisine_type)) +
+  geom_bar()  +
+  scale_fill_brewer(palette="Spectral") + theme_light() + 
+  theme(strip.text.x = element_text(size = 8, color = "darkblue", face = "bold"),
+        axis.text.x = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20",
+                                   size = 6, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "right", legend.title = element_text(size=8, color = "black", face = "bold"),
+        legend.text = element_text(size=8, color = "grey20", face = "plain"), 
+        legend.key.size = unit(.5, 'cm')) + ggtitle('Will you increase your volume?')
+```
+
+Oh, There are 19 customer who will not increase their volume.  
+
+Let's review their comments:  
+
+```{r feedback, layout="l-body-outset", echo = FALSE}
+data_fb_yes_no <- data_fb_yes %>% filter(`Will you increase your volume?` == 'No') %>%
+  select(`Store ID`, `Store Name`,`Customer satisfaction`,`Will you increase your volume?`,`Comments` )
+knitr::kable(data_fb_yes_no, align ='lllll') %>%
+  kable_styling(full_width =T, font_size = 9)
+```
+
+
+  
+And again, the most common reasons are price and product quality.  
+  
+    
+### Conclusion  
+
+In a nutshell, most of our customers were happy with their first experience at Kamereo.  
+
+However, to improve and increase our user retention, we must take more concentration on our price and product quality.  
+
+**Next Action:**  
+
+For Category Management team, as our CGO stated in Sales Sep strategy, we will increase personalized offer price via Sales rather than applying mass promotion.
+For Product Quality issue, we will revamp and enhance the quality control with our suppliers and storage condition.
